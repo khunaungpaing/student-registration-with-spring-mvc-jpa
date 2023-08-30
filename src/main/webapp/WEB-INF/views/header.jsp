@@ -82,6 +82,7 @@ body {
 	position: fixed;
 	width: 100%;
 	float: bottom;
+	z-index: 1;
 }
 
 #container {

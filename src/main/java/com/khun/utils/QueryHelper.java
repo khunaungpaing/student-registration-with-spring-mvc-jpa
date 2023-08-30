@@ -36,11 +36,11 @@ public class QueryHelper {
 	public final static String DELETE_DETAILS = "DELETE FROM details WHERE student_id=?";
 
 	public final static String FETCH_ALL_STUDENT_INFO = """
-					SELECT s.*, c.*
-						FROM student as s
-						JOIN details as cd ON s.student_id = cd.student_id
-						JOIN course as c ON cd.course_id = c.course_id;
-					""";
+            SELECT s.*, c.*
+            	FROM student as s
+            	JOIN details as cd ON s.id = cd.student_id
+            	JOIN course as c ON cd.course_id = c.id;
+            """;
 	
 	public final static String FIND_STUDENT_INFO_BY_ID = """
 			SELECT s.*, c.*

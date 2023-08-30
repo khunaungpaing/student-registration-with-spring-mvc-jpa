@@ -16,18 +16,18 @@
 		<jsp:include page="header.jsp"></jsp:include>
 		<div class="main_contents">
 			<div id="sub_content">
-				
-				<form id="user-form" action="register" method="post">
 
-					<h2 class="col-md-6 offset-md-2 mb-5 mt-4 fw-bold">CREATE NEW
-						USER</h2>
-					<div class="row mb-4">
-						<div class="col-md-2"></div>
-						<label for="userid" class="col-md-2 col-form-label">User
-							ID</label>
-						<div class="col-md-4">
-							<input type="text" class="form-control" id="userid"
-								value="${sessionScope.userId}" placeholder="UserId" disabled
+                <form id="user-form" action="register" method="post">
+
+                    <h2 class="col-md-6 offset-md-2 mb-5 mt-4 fw-bold">CREATE NEW
+                        USER</h2>
+                    <div class="row mb-4">
+                        <div class="col-md-2"></div>
+                        <label for="userid" class="col-md-2 col-form-label">User
+                            ID</label>
+                        <div class="col-md-4">
+                            <input type="text" class="form-control" id="userid" name="userId"
+                                   value="${sessionScope.userId}" placeholder="UserId" disabled
 								required>
 						</div>
 					</div>

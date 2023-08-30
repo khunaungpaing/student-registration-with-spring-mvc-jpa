@@ -99,13 +99,15 @@
 
 						<div class="col-md-4">
 						<c:forEach var="course" items="${sessionScope.courseList}">
-						    <div class="form-check-inline col-md-auto">
-						        <input class="form-check-input" type="checkbox" name="courses" id="${course.id}" value="${course.id}" <c:if test="${stuCourses.contains(course)}">checked</c:if>>
-						        <label class="form-check-label" for="${course.id}">
-						            ${course.name}
-						        </label>
-						    </div>
-						</c:forEach>
+                            <div class="form-check-inline col-md-auto">
+                                <input class="form-check-input" type="checkbox" name="courses" id="${course.id}"
+                                       value="${course.id}"
+                                       <c:if test="${stuCourses.contains(course)}">checked</c:if>>
+                                <label class="form-check-label" for="${course.id}">
+                                        ${course.name}
+                                </label>
+                            </div>
+                        </c:forEach>
 
 						</div>
 					</fieldset>

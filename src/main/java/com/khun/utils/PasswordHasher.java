@@ -17,14 +17,18 @@ public class PasswordHasher implements Serializable {
         
         // Hash the password
         String hashedPassword = BCrypt.hashpw(plainTextPassword, salt);
-      
+
         return hashedPassword;
     }
 
     public static boolean checkPassword(String plainTextPassword, String hashedPassword) {
-    	System.out.println("in check Password");
+        System.out.println("in check Password");
         return BCrypt.checkpw(plainTextPassword.trim(), hashedPassword);
     }
 
+
+    public static void main(String[] args) {
+        System.out.println(hashPassword("khunkhun"));
+    }
 
 }

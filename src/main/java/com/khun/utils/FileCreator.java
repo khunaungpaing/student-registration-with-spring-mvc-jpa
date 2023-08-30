@@ -12,9 +12,9 @@ import org.springframework.web.multipart.MultipartFile;
 @MultipartConfig
 public class FileCreator {
 
-	private MultipartFile filePart;
-	private String fileName;
-	private String uploadPath;
+	private final MultipartFile filePart;
+    private final String uploadPath;
+    private String fileName;
 
 	public FileCreator(MultipartFile filePart, ServletContext context) {
 

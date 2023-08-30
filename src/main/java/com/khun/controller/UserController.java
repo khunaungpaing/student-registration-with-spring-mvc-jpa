@@ -1,61 +1,51 @@
 package com.khun.controller;
 
+import com.khun.auth.Authenticate;
+import com.khun.dto.UserDto;
+import com.khun.dto.UserReqDto;
+import com.khun.entity.User;
+import com.khun.exception.AccountDisableException;
+import com.khun.exception.AccountNotFoundException;
+import com.khun.exception.PasswordNotMatchException;
+import com.khun.services.UserService;
+import com.khun.utils.*;
+import com.mysql.cj.jdbc.exceptions.MysqlDataTruncation;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Controller;
+import org.springframework.ui.Model;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestParam;
+
+import javax.servlet.http.HttpSession;
 import java.sql.SQLException;
 import java.sql.SQLIntegrityConstraintViolationException;
 import java.util.List;
 import java.util.Optional;
 
-import javax.servlet.http.HttpSession;
-
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.stereotype.Controller;
-import org.springframework.ui.Model;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.ModelAttribute;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RequestParam;
-import org.springframework.web.servlet.ModelAndView;
-import org.springframework.web.servlet.mvc.support.RedirectAttributes;
-
-import com.khun.auth.Authenticate;
-import com.khun.entity.User;
-import com.khun.exception.AccountDisableException;
-import com.khun.exception.AccountNotFoundException;
-import com.khun.exception.PasswordNotMatchException;
-import com.khun.model.dao.impl.UserDaoImp;
-import com.khun.model.dto.UserDto;
-import com.khun.model.dto.UserReqDto;
-import com.khun.service.UserService;
-import com.khun.utils.CodeGenerator;
-import com.khun.utils.Role;
-import com.khun.utils.Type;
-import com.mysql.cj.jdbc.exceptions.MysqlDataTruncation;
-
 @Controller
-@RequestMapping
 public class UserController {
 
-	private UserService userService;
+    private final UserService userService;
 
 	@Autowired
 	public UserController(UserService userService) {
 		this.userService = userService;
 	}
 
-	@GetMapping("/")
-	public String showLoginForm(HttpSession session,Model model) {
+    @GetMapping("/")
+    public String showLoginForm(HttpSession session) {
 
-		String adminEmail = (String) session.getAttribute("user-email");
-		if(adminEmail==null) {
-			return "redirect:/login";
-		}
-		return "redirect:/welcome";
-	}
-	
+        String adminEmail = (String) session.getAttribute("user-email");
+        if (adminEmail == null) {
+            return "redirect:/login";
+        }
+        return "redirect:/welcome";
+    }
+
 	@GetMapping("/login")
 	public String loginForm(HttpSession session) {
-		
+
 		System.out.println("in get login()");
 		String adminEmail = (String) session.getAttribute("user-email");
 		if(adminEmail!=null) {
@@ -63,14 +53,14 @@ public class UserController {
 		}
 		return "login";
 	}
-	
+
 
 	@PostMapping("/login")
 	public String processLogin(
-			@RequestParam("email") String email,
-			@RequestParam("pass") String password, 
-			HttpSession session,Model model) {
-		
+            @RequestParam("email") String email,
+            @RequestParam("pass") String password,
+            HttpSession session, Model model) {
+
 		String adminEmail = (String) session.getAttribute("user-email");
 		if(adminEmail!=null) {
 			return "redirect:/welcome";
@@ -79,7 +69,7 @@ public class UserController {
 		String accountDisableException = null;
 		String accountNotFoundException = null;
 		String passwordNotMatchException = null;
-		
+
 		if(email!=null && password!=null) {
 			try {
 				user = new Authenticate(userService).checkAndGetUser(email, password);
@@ -119,7 +109,7 @@ public class UserController {
 		if(adminEmail==null) {
 			return "redirect:/login";
 		}
-		return "redirect:/students";
+        return "redirect:/users";
 	}
 
 	@GetMapping("/users")
@@ -131,12 +121,12 @@ public class UserController {
 		if(adminEmail==null) {
 			return "redirect:/login";
 		}
-		
+
 		boolean isAdmin = (boolean) session.getAttribute("isAdmin");
-		if(adminEmail!=null && !isAdmin) {
-			return "redirect:/welcome";
-		}
-		
+        if (!isAdmin) {
+            return "redirect:/welcome";
+        }
+
 		// for disable user account
 		if (status != null && userId != null) {
 			int userStatus = 0;
@@ -144,14 +134,11 @@ public class UserController {
 			if ("0".equals(status)) {
 				userStatus = 1;
 			}
-			try {
 				userService.disableOrActiveUser(userId, userStatus);
-			} catch (SQLException e) {
-				e.printStackTrace();
-			}
+
 		}
 
-		List<UserDto> users = userService.fetchAll();
+        List<UserDto> users = userService.getAllUsers();
 
 		// for search features
 		if (userId != null && username != null) {
@@ -180,14 +167,14 @@ public class UserController {
 		if(adminEmail==null) {
 			return "redirect:/login";
 		}
-		
+
 		boolean isAdmin = (boolean) session.getAttribute("isAdmin");
-		if(adminEmail!=null && !isAdmin) {
-			return "redirect:/welcome";
-		}
-		
+        if (!isAdmin) {
+            return "redirect:/welcome";
+        }
+
 		// generate user code and set to session
-		String code = new CodeGenerator(new UserDaoImp()).generate(Type.USER);
+        String code = new CodeGenerator(userService).generate(Type.USER);
 		session.setAttribute("userId", code);
 
 		// create status for toast
@@ -196,30 +183,33 @@ public class UserController {
 		return "user-register";
 	}
 
-	@PostMapping("users/register")
-	public String addUserProccess(@RequestParam(name = "email") String email,
-			@RequestParam(name = "name") String username, @RequestParam(name = "pass") String password,
-			@RequestParam(name = "adminPass") String adminPass, HttpSession session) {
+    @PostMapping("users/register")
+    public String addUserProcess(
+            @RequestParam(name = "email") String email,
+            @RequestParam(name = "name") String username,
+            @RequestParam(name = "pass") String password,
+            @RequestParam(name = "adminPass") String adminPass, HttpSession session) {
 
-		String error = "";
-		boolean isCreated = false;
-		boolean notCreated = false;
-		
-		String adminEmail = (String) session.getAttribute("user-email");
-		if(adminEmail==null) {
-			return "redirect:/login";
-		}
-		
-		boolean isAdmin = (boolean) session.getAttribute("isAdmin");
-		if(adminEmail!=null && !isAdmin) {
-			return "redirect:/welcome";
-		}
+        String error = "";
+        boolean isCreated = false;
+        boolean notCreated = false;
+
+        String adminEmail = (String) session.getAttribute("user-email");
+        String userId = (String) session.getAttribute("userId");
+
+        if (adminEmail == null) {
+            return "redirect:/login";
+        }
+
+        boolean isAdmin = (boolean) session.getAttribute("isAdmin");
+        if (!isAdmin) {
+            return "redirect:/welcome";
+        }
 
 		boolean isAuth = false;
 		// check Authentication
-		if (adminPass != null && adminEmail != null) {
 			try {
-				isAuth = new Authenticate(userService).check(adminEmail, adminPass);
+                isAuth = new Authenticate(userService).checkAndGetUser(adminEmail, adminPass) != null;
 			} catch (AccountNotFoundException e) {
 				notCreated = true;
 				error = "Account Not Found!";
@@ -230,23 +220,26 @@ public class UserController {
 				notCreated = true;
 				error = "This account is DISABLE.";
 			}
-		}
-		// add user data if isAuth
-		if (isAuth && username != null && email != null && password != null) {
-			UserReqDto userReqDto = new UserReqDto();
-			userReqDto.setName(username);
-			userReqDto.setEmail(email);
-			userReqDto.setPassword(password);
 
-			try {
-				userService.save(userReqDto);
-				isCreated = true;
-			} catch (SQLIntegrityConstraintViolationException e) {
-				notCreated = true;
-				error = "Email is already used";
-			} catch (MysqlDataTruncation e) {
-				notCreated = true;
-				error = "Students have limit.";
+        // add user data if isAuth
+		if (isAuth && username != null && email != null && password != null) {
+            UserReqDto userReqDto = new UserReqDto();
+            userReqDto.setId(userId);
+            userReqDto.setName(username);
+            userReqDto.setEmail(email);
+            userReqDto.setPassword(PasswordHasher.hashPassword(password));
+            userReqDto.setRole(Role.USER.getValue());
+            userReqDto.setStatus(Status.ACTIVE.getValue());
+
+            try {
+                userService.save(userReqDto);
+                isCreated = true;
+            } catch (SQLIntegrityConstraintViolationException e) {
+                notCreated = true;
+                error = "Email is already used";
+            } catch (MysqlDataTruncation e) {
+                notCreated = true;
+                error = "Students have limit.";
 			} catch (SQLException e) {
 				notCreated = true;
 				error = "Unknown Error";
@@ -254,7 +247,7 @@ public class UserController {
 		}
 
 		// generate user code and set to session
-		String code = new CodeGenerator(new UserDaoImp()).generate(Type.USER);
+        String code = new CodeGenerator(userService).generate(Type.USER);
 		session.setAttribute("userId", code);
 
 		// create status for toast
@@ -271,22 +264,21 @@ public class UserController {
 		if(adminEmail==null) {
 			return "redirect:/login";
 		}
-		
-		boolean isAdmin = (boolean) session.getAttribute("isAdmin");
-		if(adminEmail!=null && !isAdmin) {
-			return "redirect:/welcome";
-		}
-		
-		if (userId != null) {
 
-			User user = userService.findById(userId);
-			if (user != null)
-				session.setAttribute("updateUser", user);
+        boolean isAdmin = (boolean) session.getAttribute("isAdmin");
+        if (!isAdmin) {
+            return "redirect:/welcome";
+        }
 
-			session.setAttribute("isUpdated", false);
-			session.setAttribute("notUpdated", false);
+        if (userId != null) {
 
-		}
+            Optional<User> user = userService.getOneById(userId);
+            user.ifPresent(value -> session.setAttribute("updateUser", value));
+
+            session.setAttribute("isUpdated", false);
+            session.setAttribute("notUpdated", false);
+
+        }
 		return "user-update";
 	}
 
@@ -301,33 +293,33 @@ public class UserController {
 
 		String error = "";
 		boolean isUpdated = false;
-		boolean notUpdated = false;
-		boolean isOldPass = false;
-		User currentUser = (User) session.getAttribute("updateUser");
-
+        boolean notUpdated = false;
+        boolean isOldPass;
+        User currentUser = (User) session.getAttribute("updateUser");
 		String adminEmail = (String) session.getAttribute("user-email");
-		if(adminEmail==null) {
+
+        if(adminEmail==null) {
 			return "redirect:/login";
 		}
-		
-		boolean isAdmin = (boolean) session.getAttribute("isAdmin");
-		if(adminEmail!=null && !isAdmin) {
-			return "redirect:/welcome";
-		}
+
+        boolean isAdmin = (boolean) session.getAttribute("isAdmin");
+        if (!isAdmin) {
+            return "redirect:/welcome";
+        }
 
 		boolean isAuth = false;
 		// check Authentication
-		if (adminPass != null && adminEmail != null) {
+        if (adminPass != null) {
 
-			try {
-				isAuth = new Authenticate(userService).check(adminEmail, adminPass);
-			} catch (AccountNotFoundException e) {
-				notUpdated = true;
-				error = "Account Not Found!";
-			} catch (PasswordNotMatchException e) {
-				notUpdated = true;
-				error = "Invalid Password to verify admin";
-			} catch (AccountDisableException e) {
+            try {
+                isAuth = new Authenticate(userService).checkAndGetUser(adminEmail, adminPass) != null;
+            } catch (AccountNotFoundException e) {
+                notUpdated = true;
+                error = "Account Not Found!";
+            } catch (PasswordNotMatchException e) {
+                notUpdated = true;
+                error = "Invalid Password to verify admin";
+            } catch (AccountDisableException e) {
 				notUpdated = true;
 				error = "This account is DISABLE.";
 			}
@@ -335,29 +327,26 @@ public class UserController {
 
 		if (isAuth) {
 
-			UserReqDto user = new UserReqDto();
-			user.setId(currentUser.getId());
-			user.setEmail(email);
-			user.setName(username);
-			user.setPassword(password);
-			user.setRole(Integer.parseInt(role));
-			user.setStatus(Integer.parseInt(status));
+            UserReqDto user = new UserReqDto();
+            user.setId(currentUser.getId());
+            user.setEmail(email);
+            user.setName(username);
+            user.setPassword(password);
+            user.setRole(Integer.parseInt(role));
+            user.setStatus(Integer.parseInt(status));
 
-			if (currentUser != null) {
+            String oldPass = currentUser.getPassword();
+            isOldPass = oldPass.equals(user.getPassword());
 
-				String oldPass = currentUser.getPassword();
-				isOldPass = oldPass.equals(user.getPassword());
+            try {
+                isUpdated = userService.Update(user, isOldPass);
+            } catch (SQLException e) {
+                System.out.println("error at update");
+                notUpdated = true;
+                error = "Something went wrong to update";
+            }
 
-				try {
-					isUpdated = userService.update(user, isOldPass);
-				} catch (SQLException e) {
-					System.out.println("error at update");
-					notUpdated = true;
-					error="Something went wrong to update";
-				}
-			} 
-
-		}
+        }
 		session.setAttribute("error", error);
 		session.setAttribute("isUpdated", isUpdated);
 		session.setAttribute("notUpdated", notUpdated);

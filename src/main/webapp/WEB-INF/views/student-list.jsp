@@ -82,11 +82,12 @@
 						</c:if>
 
 						<c:if test="${empty sessionScope.AllStudentLists}">
-							<tr>
-								<th class="text-center fs-4 table-success" colspan="6">There
-									is no user.</th>
-							</tr>
-						</c:if>
+                            <tr>
+                                <th class="text-center fs-4 table-success" colspan="6">There
+                                    is no student.
+                                </th>
+                            </tr>
+                        </c:if>
 
 					</tbody>
 				</table>

@@ -5,6 +5,8 @@ import java.sql.SQLIntegrityConstraintViolationException;
 
 import javax.servlet.http.HttpSession;
 
+import com.khun.services.CourseService;
+import com.khun.services.UserService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -16,11 +18,7 @@ import com.khun.auth.Authenticate;
 import com.khun.exception.AccountDisableException;
 import com.khun.exception.AccountNotFoundException;
 import com.khun.exception.PasswordNotMatchException;
-import com.khun.model.dao.impl.CourseDaoImpl;
-import com.khun.model.dao.impl.UserDaoImp;
-import com.khun.model.dto.CourseDto;
-import com.khun.service.CourseService;
-import com.khun.service.UserService;
+import com.khun.dto.CourseDto;
 import com.khun.utils.CodeGenerator;
 import com.khun.utils.Type;
 import com.mysql.cj.jdbc.exceptions.MysqlDataTruncation;
@@ -29,8 +27,8 @@ import com.mysql.cj.jdbc.exceptions.MysqlDataTruncation;
 @RequestMapping
 public class CourseController {
 
-	private UserService userService;
-	private CourseService courseService;
+	private final UserService userService;
+	private final CourseService courseService;
 
 	@Autowired
 	public CourseController(CourseService courseService, UserService userService) {
@@ -45,14 +43,14 @@ public class CourseController {
 		if(adminEmail==null) {
 			return "redirect:/login";
 		}
-		
+
 		boolean isAdmin = (boolean) session.getAttribute("isAdmin");
 		if(adminEmail!=null && !isAdmin) {
 			return "redirect:/welcome";
 		}
-		
+
 		// generate user code and set to session
-		String code = new CodeGenerator(new CourseDaoImpl()).generate(Type.COURSE);
+		String code = new CodeGenerator(courseService).generate(Type.COURSE);
 		session.setAttribute("courseId", code);
 
 		// create status for toast
@@ -67,13 +65,14 @@ public class CourseController {
 			@RequestParam(name = "adminPass") String adminPass,
 			HttpSession session) {
 
+		String courseId = (String) session.getAttribute("courseId");
 		String adminEmail = (String) session.getAttribute("user-email");
 		if(adminEmail==null) {
 			return "redirect:/login";
 		}
-		
+
 		boolean isAdmin = (boolean) session.getAttribute("isAdmin");
-		if(adminEmail!=null && !isAdmin) {
+		if (!isAdmin) {
 			return "redirect:/welcome";
 		}
 
@@ -83,11 +82,11 @@ public class CourseController {
 
 		boolean isAuth = false;
 		// check Authentication
-		if (adminPass != null && adminEmail != null) {
+		if (adminPass != null) {
 
 			System.out.println("admin data not null --------");
 			try {
-				isAuth = new Authenticate(userService).check(adminEmail, adminPass);
+				isAuth = new Authenticate(userService).checkAndGetUser(adminEmail, adminPass) != null;
 			} catch (AccountNotFoundException e) {
 				notCreated = true;
 				error = "Account Not Found!";
@@ -103,6 +102,7 @@ public class CourseController {
 		// add user data if isAuth
 		if (isAuth && courseName != null) {
 			CourseDto course = new CourseDto();
+			course.setId(courseId);
 			course.setName(courseName);
 
 			try {
@@ -121,7 +121,7 @@ public class CourseController {
 		}
 
 		// generate user code and set to session
-		String code = new CodeGenerator(new CourseDaoImpl()).generate(Type.COURSE);
+		String code = new CodeGenerator(courseService).generate(Type.COURSE);
 		session.setAttribute("courseId", code);
 
 		// create status for toast

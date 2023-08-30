@@ -10,6 +10,9 @@ import java.util.List;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpSession;
 
+import com.khun.services.CourseService;
+import com.khun.services.StudentService;
+import com.khun.services.UserService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -22,14 +25,8 @@ import com.khun.auth.Authenticate;
 import com.khun.exception.AccountDisableException;
 import com.khun.exception.AccountNotFoundException;
 import com.khun.exception.PasswordNotMatchException;
-import com.khun.model.dao.impl.StudentDaoImpl;
-import com.khun.model.dto.CourseDetailsDto;
-import com.khun.model.dto.CourseDto;
-import com.khun.model.dto.StudentDto;
-import com.khun.model.dto.StudentInfoDto;
-import com.khun.service.CourseService;
-import com.khun.service.StudentService;
-import com.khun.service.UserService;
+import com.khun.dto.CourseDto;
+import com.khun.dto.StudentDto;
 import com.khun.utils.CodeGenerator;
 import com.khun.utils.FileCreator;
 import com.khun.utils.Type;
@@ -38,223 +35,199 @@ import com.mysql.cj.jdbc.exceptions.MysqlDataTruncation;
 @Controller
 public class StudentController {
 
-	private StudentService studentService;
-	private UserService userService;
-	private CourseService courseService;
+    private final StudentService studentService;
+    private final UserService userService;
+    private final CourseService courseService;
 
-	@Autowired
-	public StudentController(StudentService studentService, UserService userService, CourseService courseService) {
+    @Autowired
+    public StudentController(StudentService studentService, UserService userService, CourseService courseService) {
 
-		this.studentService = studentService;
-		this.userService = userService;
-		this.courseService = courseService;
-	}
+        this.studentService = studentService;
+        this.userService = userService;
+        this.courseService = courseService;
+    }
 
-	@GetMapping("students/add")
-	public String addStudent(HttpSession session) {
-		
-		String adminEmail = (String) session.getAttribute("user-email");
-		if(adminEmail==null) {
-			return "redirect:/login";
-		}
-		
-		// get all courses
-		List<CourseDto> courseList = courseService.fetchAll();
-		session.setAttribute("courseList", courseList);
+    @GetMapping("students/add")
+    public String addStudent(HttpSession session) {
 
-		// generate user code and set to session
-		String code = new CodeGenerator(new StudentDaoImpl()).generate(Type.STUDENT);
-		session.setAttribute("studentId", code);
+        String adminEmail = (String) session.getAttribute("user-email");
+        if (adminEmail == null) {
+            return "redirect:/login";
+        }
 
-		// create status for toast
-		session.setAttribute("isCreatedStudent", false);
-		session.setAttribute("notCreatedStudent", false);
-		return "student-register";
-	}
+        // get all courses
+        List<CourseDto> courseList = courseService.getAllCourses();
+        session.setAttribute("courseList", courseList);
 
-	@PostMapping("students/add")
-	public String registerStudent(@RequestParam("name") String name, @RequestParam("dob") String dobStr,
-			@RequestParam("gender") String gender, @RequestParam("phone") String phone,
-			@RequestParam("education") String education, @RequestParam("courses") String[] courses,
-			@RequestParam("imageFile") CommonsMultipartFile imageFile, @RequestParam("adminPass") String adminPass,
-			HttpServletRequest request, HttpSession session) {
+        // generate user code and set to session
+        String code = new CodeGenerator(studentService).generate(Type.STUDENT);
+        session.setAttribute("studentId", code);
 
-		String adminEmail = (String) session.getAttribute("user-email");
-		if(adminEmail==null) {
-			return "redirect:/login";
-		}
-		
-		String error = null;
-		boolean isCreated = false;
-		boolean notCreated = false;
+        // create status for toast
+        session.setAttribute("isCreatedStudent", false);
+        session.setAttribute("notCreatedStudent", false);
+        return "student-register";
+    }
 
-		// upload image
-		boolean createImageSuccess = false;
-		String img_url = null;
+    @PostMapping("students/add")
+    public String registerStudent(@RequestParam("name") String name, @RequestParam("dob") String dobStr,
+                                  @RequestParam("gender") int gender, @RequestParam("phone") String phone,
+                                  @RequestParam("education") String education, @RequestParam("courses") String[] courseIds,
+                                  @RequestParam("imageFile") CommonsMultipartFile imageFile, @RequestParam("adminPass") String adminPass,
+                                  HttpServletRequest request, HttpSession session) {
 
-		try {
-			img_url = new FileCreator(imageFile, request.getServletContext()).create(request);
-			createImageSuccess = true;
-		} catch (IOException e) {
-			createImageSuccess = false;
-			error = "can't not upload image";
-		}
+        String studentId = (String) session.getAttribute("studentId");
+        String adminEmail = (String) session.getAttribute("user-email");
+        if (adminEmail == null) {
+            return "redirect:/login";
+        }
 
-		// check Authentication
-		boolean isAuth = false;
-		if (adminPass != null && adminEmail != null) {
+        String error = null;
+        boolean isCreated = false;
+        boolean notCreated = false;
 
-			try {
-				isAuth = new Authenticate(userService).check(adminEmail, adminPass);
-			} catch (AccountNotFoundException e) {
-				notCreated = true;
-				error = "Account Not Found!";
-			} catch (PasswordNotMatchException e) {
-				notCreated = true;
-				error = "Invalid Password to verify ADMIN";
-			} catch (AccountDisableException e) {
-				notCreated = true;
-				error = "This account is DISABLE.";
-			}
-		}
+        // upload image
+        boolean createImageSuccess = false;
+        String img_url = null;
 
-		// Parse the date string
-		boolean checkDate = true;
-		java.util.Date utilDate = null;
-		try {
-			SimpleDateFormat inputFormat = new SimpleDateFormat("yyyy-MM-dd");
-			utilDate = inputFormat.parse(dobStr);
-		} catch (ParseException e) {
-			checkDate = false;
-			session.setAttribute("error", "Date can't convert");
-		}
+        try {
+            img_url = new FileCreator(imageFile, request.getServletContext()).create(request);
+            createImageSuccess = true;
+        } catch (IOException e) {
+            createImageSuccess = false;
+            error = "can't not upload image";
+        }
 
-		java.sql.Date dob = null;
-		if (utilDate != null) {
-			dob = new java.sql.Date(utilDate.getTime());
-		}
+        // check Authentication
+        boolean isAuth = false;
+        if (adminPass != null) {
 
-		if (img_url != null && createImageSuccess && isAuth && checkDate) {
-			StudentDto student = new StudentDto();
-			student.setName(name);
-			student.setDob(dob);
-			student.setGender(Integer.parseInt(gender));
-			student.setPhone(phone);
-			student.setEducation(education);
-			student.setImg_url(img_url);
+            try {
+                isAuth = new Authenticate(userService).checkAndGetUser(adminEmail, adminPass) != null;
+            } catch (AccountNotFoundException e) {
+                notCreated = true;
+                error = "Account Not Found!";
+            } catch (PasswordNotMatchException e) {
+                notCreated = true;
+                error = "Invalid Password to verify ADMIN";
+            } catch (AccountDisableException e) {
+                notCreated = true;
+                error = "This account is DISABLE.";
+            }
+        }
 
-			try {
-				isCreated = studentService.save(student);
-			} catch (SQLIntegrityConstraintViolationException e) {
-				notCreated = true;
-				session.setAttribute("error", "Email is already used");
-			} catch (MysqlDataTruncation e) {
-				notCreated = true;
-				session.setAttribute("error", "Student have limit.");
-				e.printStackTrace();
-			} catch (SQLException e) {
-				notCreated = true;
-				session.setAttribute("error", "Unknown Error");
-				e.printStackTrace();
-			}
+        // Parse the date string
+        boolean checkDate = true;
+        java.util.Date utilDate = null;
+        try {
+            SimpleDateFormat inputFormat = new SimpleDateFormat("yyyy-MM-dd");
+            utilDate = inputFormat.parse(dobStr);
+        } catch (ParseException e) {
+            checkDate = false;
+            session.setAttribute("error", "Date can't convert");
+        }
 
-		}
-		if (isCreated) {
-			// insert data to joint table
+        java.sql.Date dob = null;
+        if (utilDate != null) {
+            dob = new java.sql.Date(utilDate.getTime());
+        }
 
-			for (String couId : courses) {
-				System.out.println("in course for each");
-				var details = new CourseDetailsDto();
-				details.setCourse_id(couId);
-				details.setStudent_id((String) session.getAttribute("studentId"));
-				try {
-					studentService.saveDetails(details);
-				} catch (SQLException e) {
-					error = "ERROR: can't save attend courses";
-				}
-			}
+        if (img_url != null && createImageSuccess && isAuth && checkDate) {
+            StudentDto student = new StudentDto(studentId, name, dob, gender, phone, education, img_url, null);
+            try {
+                isCreated = studentService.addStudentWithEnrollments(student, List.of(courseIds));
+            } catch (SQLIntegrityConstraintViolationException e) {
+                notCreated = true;
+                session.setAttribute("error", "Email is already used");
+            } catch (MysqlDataTruncation e) {
+                notCreated = true;
+                session.setAttribute("error", "Student have limit.");
+                e.printStackTrace();
+            } catch (SQLException e) {
+                notCreated = true;
+                session.setAttribute("error", "Unknown Error");
+                e.printStackTrace();
+            }
 
-		}
+        }
 
-		// generate user code and set to session
-		String code = new CodeGenerator(new StudentDaoImpl()).generate(Type.STUDENT);
-		session.setAttribute("studentId", code);
+        // generate user code and set to session
+        String code = new CodeGenerator(studentService).generate(Type.STUDENT);
+        session.setAttribute("studentId", code);
 
-		// create status for toast
-		session.setAttribute("isCreatedStudent", isCreated);
-		session.setAttribute("notCreatedStudent", notCreated);
-		session.setAttribute("error", error);
-		return "student-register";
-	}
+        // create status for toast
+        session.setAttribute("isCreatedStudent", isCreated);
+        session.setAttribute("notCreatedStudent", notCreated);
+        session.setAttribute("error", error);
+        return "student-register";
+    }
 
-	@GetMapping("students")
-	public String studentList(@RequestParam(name = "studentId", required = false) String studentId,
-			@RequestParam(name = "studentName", required = false) String studentName, HttpSession session) {
+    @GetMapping("students")
+    public String studentList(@RequestParam(name = "studentId", required = false) String studentId,
+                              @RequestParam(name = "studentName", required = false) String studentName, HttpSession session) {
 
-		String adminEmail = (String) session.getAttribute("user-email");
-		if(adminEmail==null) {
-			return "redirect:/login";
-		}
-		
-		// get all students
-		List<StudentDto> stuList = studentService.fetchAllStudents();
+        String adminEmail = (String) session.getAttribute("user-email");
+        if (adminEmail == null) {
+            return "redirect:/login";
+        }
 
-		// for search features
-		if (studentId != null && studentName != null) {
-			stuList = stuList.stream().filter(
-					user -> studentId.equalsIgnoreCase(user.getId()) && studentName.equalsIgnoreCase(user.getName()))
-					.toList();
-			session.setAttribute("searchStudentId", studentId);
-			session.setAttribute("searchStudentname", studentName);
-		}
+        // get all students
+        List<StudentDto> stuList = studentService.fetchAllStudents();
 
-		// for reset search
-		if (studentId == null && studentName == null) {
-			session.setAttribute("searchUserId", "");
-			session.setAttribute("searchUserName", "");
-		}
+        // for search features
+        if (studentId != null && studentName != null) {
+            stuList = stuList.stream().filter(
+                            user -> studentId.equalsIgnoreCase(user.getId()) && studentName.equalsIgnoreCase(user.getName()))
+                    .toList();
+            session.setAttribute("searchStudentId", studentId);
+            session.setAttribute("searchStudentname", studentName);
+        }
 
-		session.setAttribute("AllStudentLists", stuList);
-		return "student-list";
-	}
+        // for reset search
+        if (studentId == null && studentName == null) {
+            session.setAttribute("searchUserId", "");
+            session.setAttribute("searchUserName", "");
+        }
 
-	@GetMapping("students/{id}")
-	public String showDetails(@PathVariable("id") String studentId, HttpSession session) {
+        session.setAttribute("AllStudentLists", stuList);
+        return "student-list";
+    }
 
-		String adminEmail = (String) session.getAttribute("user-email");
-		if(adminEmail==null) {
-			return "redirect:/login";
-		}
-		
-		// get student info
-		List<StudentInfoDto> stuList = studentService.findById(studentId);
-		StudentDto student = stuList.stream().map(StudentInfoDto::mapToStudentDto).findFirst().get();
+    @GetMapping("students/{id}")
+    public String showDetails(@PathVariable("id") String studentId, HttpSession session) {
 
-		// get course
-		List<CourseDto> courses = stuList.stream().map(StudentInfoDto::mapToCourseDto).toList();
+        String adminEmail = (String) session.getAttribute("user-email");
+        if (adminEmail == null) {
+            return "redirect:/login";
+        }
 
-		session.setAttribute("student", student);
-		session.setAttribute("stuCourses", courses);
+        // get student info
+        List<StudentDto> stuList = studentService.fetchAllStudents();
+        StudentDto student = stuList.stream().filter(s -> studentId.equalsIgnoreCase(s.getId())).findFirst().get();
+        List<CourseDto> courses = student.getEnrollment().stream().map(course -> new CourseDto(course.getId(), course.getName())).toList();
 
-		return "student-details";
-	}
+        session.setAttribute("student", student);
+        session.setAttribute("stuCourses", courses);
 
-	@GetMapping("students/{id}/update")
-	public String directUpdateStudent(@PathVariable("id") String studentId, HttpSession session) {
-		
-		String adminEmail = (String) session.getAttribute("user-email");
-		if(adminEmail==null) {
-			return "redirect:/login";
-		}
+        return "student-details";
+    }
 
-		// get all courses
-		List<CourseDto> courseList = courseService.fetchAll();
-		session.setAttribute("courseList", courseList);
+    @GetMapping("students/{id}/update")
+    public String directUpdateStudent(@PathVariable("id") String studentId, HttpSession session) {
 
-		session.setAttribute("notUpdatedStudent", false);
+        String adminEmail = (String) session.getAttribute("user-email");
+        if (adminEmail == null) {
+            return "redirect:/login";
+        }
 
-		return "student-update";
-	}
+        // get all courses
+        List<CourseDto> courseList = courseService.getAllCourses();
+        session.setAttribute("courseList", courseList);
+
+        session.setAttribute("notUpdatedStudent", false);
+
+        return "student-update";
+    }
 
 	@PostMapping("students/{id}/update")
 	public String updateStudent(@PathVariable("id") String studentId, @RequestParam("name") String name,
@@ -263,7 +236,7 @@ public class StudentController {
 			@RequestParam("courses") String[] courses,
 			@RequestParam(name = "imageFile", required = false) CommonsMultipartFile imageFile,
 			@RequestParam("adminPass") String adminPass, HttpServletRequest request, HttpSession session) {
-		
+
 		String adminEmail = (String) session.getAttribute("user-email");
 		if(adminEmail==null) {
 			return "redirect:/login";
@@ -293,17 +266,17 @@ public class StudentController {
 
 		// check Authentication
 		boolean isAuth = false;
-		if (adminPass != null && adminEmail != null) {
+        if (adminPass != null) {
 
-			try {
-				isAuth = new Authenticate(userService).check(adminEmail, adminPass);
-			} catch (AccountNotFoundException e) {
-				notUpdated = true;
-				error = "Account Not Found!";
-			} catch (PasswordNotMatchException e) {
-				notUpdated = true;
-				error = "Invalid Password to verify ADMIN";
-			} catch (AccountDisableException e) {
+            try {
+                isAuth = new Authenticate(userService).checkAndGetUser(adminEmail, adminPass) != null;
+            } catch (AccountNotFoundException e) {
+                notUpdated = true;
+                error = "Account Not Found!";
+            } catch (PasswordNotMatchException e) {
+                notUpdated = true;
+                error = "Invalid Password to verify ADMIN";
+            } catch (AccountDisableException e) {
 				notUpdated = true;
 				error = "This account is DISABLE.";
 			}
@@ -339,37 +312,16 @@ public class StudentController {
 			student.setImg_url(img_url);
 
 			try {
-				isUpdated = studentService.update(student);
+                isUpdated = studentService.update(student, List.of(courses));
 			} catch (MysqlDataTruncation e) {
-				notUpdated = true;
-				error = "Student have limit.";
+                notUpdated = true;
+                error = "Error: can't update...";
 			} catch (SQLException e) {
 				notUpdated = true;
 				error = "Unknown Error";
 			}
 
-			try {
-				System.out.println("deleting... course");
-				studentService.deleteCourseFromJointTable(studentId);
-			} catch (SQLException e) {
-				notUpdated = true;
-				error = "ERROR: on delete old courses";
-			}
 
-		}
-		if (isUpdated) {
-			for (String couId : courses) {
-				System.out.println("in course for each");
-				CourseDetailsDto details = new CourseDetailsDto();
-				details.setCourse_id(couId);
-				details.setStudent_id(studentId);
-				try {
-					studentService.saveDetails(details);
-				} catch (SQLException e) {
-					notUpdated = true;
-					error = "ERROR: can't save attend courses";
-				}
-			}
 		}
 
 		System.out.println("error-> "+error);

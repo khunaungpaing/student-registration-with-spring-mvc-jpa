@@ -63,9 +63,9 @@
 							<th>Attend</th>
 							
 								<td>
-									<c:forEach var="course" items="${sessionScope.stuCourses}" varStatus="loop">
-										${course.name} ${not loop.last?", ":" "}
-									</c:forEach>
+									<c:forEach var="course" items="${sessionScope.student.enrollment}" varStatus="loop">
+                                        ${course.name} ${not loop.last?", ":" "}
+                                    </c:forEach>
 								</td>
 							
 						</tr>

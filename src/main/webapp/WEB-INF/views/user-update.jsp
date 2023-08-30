@@ -144,18 +144,16 @@
                 event.preventDefault();
             } else if (passwordInput.value.length < 8) {
                 alert("Password must be at least 8 characters long!");
-                event.preventDefault(); 
+                event.preventDefault();
             }
         });
-        
-        
 
-		if(${sessionScope.notUpdatedStudent}){
-			var toast = new bootstrap.Toast(document.querySelector('#failToast'));
-			toast.show();
 
-		}
-        
+        if (${sessionScope.notUpdated}) {
+            var toast = new bootstrap.Toast(document.querySelector('#failToast'));
+            toast.show();
+
+        }
 
 
     </script>
