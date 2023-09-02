@@ -21,6 +21,7 @@ public class Student implements Serializable {
     private String phone;
     private String education;
     private String img_url;
+    private String createdBy;
 
     @ManyToMany(cascade = {CascadeType.PERSIST, CascadeType.MERGE}, fetch = FetchType.EAGER)
     @JoinTable(name = "student_course",

@@ -51,7 +51,7 @@ public class UserServiceImpl implements UserService {
     }
 
     @Override
-    public boolean Update(UserReqDto userReqDto, boolean isOldPass) {
+    public boolean update(UserReqDto userReqDto, boolean isOldPass) {
         Optional<User> optionalUser = userRepository.findById(userReqDto.getId());
         if (optionalUser.isPresent()) {
             User existingUser = optionalUser.get();

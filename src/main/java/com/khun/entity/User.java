@@ -17,8 +17,10 @@ public class User {
     private String password;
     private int role;
     private int status;
+    private boolean firstLogin;
+    private String imgUrl;
 
     public UserDto mapToUserDto() {
-        return new UserDto(id,name,email,role,status);
+        return new UserDto(id, name, email, role, status, firstLogin, imgUrl);
     }
 }

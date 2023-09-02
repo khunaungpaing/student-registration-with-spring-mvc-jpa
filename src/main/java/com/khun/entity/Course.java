@@ -2,12 +2,12 @@ package com.khun.entity;
 
 
 import lombok.Data;
+import org.hibernate.annotations.CreationTimestamp;
 
-import javax.persistence.Entity;
-import javax.persistence.FetchType;
-import javax.persistence.Id;
-import javax.persistence.ManyToMany;
+import javax.persistence.*;
 import java.io.Serializable;
+import java.sql.Timestamp;
+import java.util.Date;
 import java.util.HashSet;
 import java.util.Objects;
 import java.util.Set;
@@ -19,6 +19,10 @@ public class Course implements Serializable {
     @Id
     private String id;
     private String name;
+    @CreationTimestamp
+    @Column(name = "created_at", nullable = false, updatable = false)
+    private Timestamp createdAt;
+    private boolean active;
 
     @ManyToMany(mappedBy = "courses", fetch = FetchType.EAGER)
     private Set<Student> students;

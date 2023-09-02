@@ -16,8 +16,11 @@ import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.multipart.commons.CommonsMultipartFile;
 
+import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpSession;
+import java.io.IOException;
 import java.sql.SQLException;
 import java.sql.SQLIntegrityConstraintViolationException;
 import java.util.List;
@@ -55,6 +58,15 @@ public class UserController {
 	}
 
 
+	private static void setSessionData(HttpSession session, UserDto user) {
+		session.setAttribute("isAdmin", user.getRole() == Role.ADMIN.getValue());
+		session.setAttribute("userId", user.getId());
+		session.setAttribute("username", user.getName());
+		session.setAttribute("user-email", user.getEmail());
+		session.setAttribute("isFirstLogin", user.isFirstLogin());
+		session.setAttribute("userImg", user.getImgUrl());
+	}
+
 	@PostMapping("/login")
 	public String processLogin(
             @RequestParam("email") String email,
@@ -83,9 +95,7 @@ public class UserController {
 		}
 
 		if (user != null) {
-			session.setAttribute("isAdmin", user.getRole() == Role.ADMIN.getValue());
-			session.setAttribute("username", user.getName());
-			session.setAttribute("user-email", user.getEmail());
+			setSessionData(session, user);
 			return "redirect:/welcome";
 		} else {
 			model.addAttribute("email", email);
@@ -106,19 +116,49 @@ public class UserController {
 	@GetMapping("welcome")
 	public String home(HttpSession session) {
 		String adminEmail = (String) session.getAttribute("user-email");
-		if(adminEmail==null) {
+		if (adminEmail == null) {
 			return "redirect:/login";
 		}
-        return "redirect:/users";
+
+		return "redirect:/students";
 	}
+
+	@PostMapping("change-default-password")
+	public String changeDefaultPassword(
+			@RequestParam(name = "pass") String password,
+			HttpSession session) {
+		String adminEmail = (String) session.getAttribute("user-email");
+		if (adminEmail == null) {
+			return "redirect:/login";
+		}
+
+		Optional<User> user = userService.getOneById((String) session.getAttribute("userId"));
+		UserReqDto userReqDto;
+		if (user.isPresent()) {
+			User curUser = user.get();
+			userReqDto = new UserReqDto(curUser.getId(), curUser.getName(), curUser.getEmail(),
+					PasswordHasher.hashPassword(password), curUser.getRole(), curUser.getStatus(), false, curUser.getImgUrl());
+			try {
+				userService.update(userReqDto, false);
+			} catch (SQLException e) {
+				System.out.println("error at update");
+			}
+		}
+
+		Optional<User> user1 = userService.getOneById((String) session.getAttribute("userId"));
+		setSessionData(session, user1.get().mapToUserDto());
+
+		return "redirect:/students";
+	}
+
 
 	@GetMapping("/users")
 	public String getUserList(@RequestParam(name = "userId", required = false) String userId,
-			@RequestParam(name = "username", required = false) String username,
-			@RequestParam(name = "userStatus", required = false) String status, HttpSession session) {
+							  @RequestParam(name = "username", required = false) String username,
+							  @RequestParam(name = "userStatus", required = false) String status, HttpSession session) {
 
 		String adminEmail = (String) session.getAttribute("user-email");
-		if(adminEmail==null) {
+		if (adminEmail == null) {
 			return "redirect:/login";
 		}
 
@@ -183,22 +223,24 @@ public class UserController {
 		return "user-register";
 	}
 
-    @PostMapping("users/register")
-    public String addUserProcess(
-            @RequestParam(name = "email") String email,
-            @RequestParam(name = "name") String username,
-            @RequestParam(name = "pass") String password,
-            @RequestParam(name = "adminPass") String adminPass, HttpSession session) {
+	@PostMapping("users/register")
+	public String addUserProcess(
+			@RequestParam(name = "email") String email,
+			@RequestParam(name = "name") String username,
+			@RequestParam(name = "pass") String password,
+			@RequestParam(name = "adminPass") String adminPass,
+			@RequestParam(name = "imageFile") CommonsMultipartFile imageFile,
+			HttpServletRequest request, HttpSession session) {
 
-        String error = "";
-        boolean isCreated = false;
-        boolean notCreated = false;
+		String error = "";
+		boolean isCreated = false;
+		boolean notCreated = false;
 
-        String adminEmail = (String) session.getAttribute("user-email");
-        String userId = (String) session.getAttribute("userId");
+		String adminEmail = (String) session.getAttribute("user-email");
+		String userId = (String) session.getAttribute("userId");
 
-        if (adminEmail == null) {
-            return "redirect:/login";
+		if (adminEmail == null) {
+			return "redirect:/login";
         }
 
         boolean isAdmin = (boolean) session.getAttribute("isAdmin");
@@ -223,23 +265,31 @@ public class UserController {
 
         // add user data if isAuth
 		if (isAuth && username != null && email != null && password != null) {
-            UserReqDto userReqDto = new UserReqDto();
-            userReqDto.setId(userId);
-            userReqDto.setName(username);
-            userReqDto.setEmail(email);
-            userReqDto.setPassword(PasswordHasher.hashPassword(password));
-            userReqDto.setRole(Role.USER.getValue());
-            userReqDto.setStatus(Status.ACTIVE.getValue());
+			String imgUrl = "";
+			try {
+				imgUrl = new FileCreator(imageFile, request.getServletContext()).create();
+			} catch (IOException e) {
+				throw new RuntimeException(e);
+			}
+			UserReqDto userReqDto = new UserReqDto();
+			userReqDto.setId(userId);
+			userReqDto.setName(username);
+			userReqDto.setEmail(email);
+			userReqDto.setPassword(PasswordHasher.hashPassword(password));
+			userReqDto.setRole(Role.USER.getValue());
+			userReqDto.setStatus(Status.ACTIVE.getValue());
+			userReqDto.setFirstLogin(true);
+			userReqDto.setImgUrl(imgUrl);
 
-            try {
-                userService.save(userReqDto);
-                isCreated = true;
-            } catch (SQLIntegrityConstraintViolationException e) {
-                notCreated = true;
-                error = "Email is already used";
-            } catch (MysqlDataTruncation e) {
-                notCreated = true;
-                error = "Students have limit.";
+			try {
+				userService.save(userReqDto);
+				isCreated = true;
+			} catch (SQLIntegrityConstraintViolationException e) {
+				notCreated = true;
+				error = "Email is already used";
+			} catch (MysqlDataTruncation e) {
+				notCreated = true;
+				error = "Students have limit.";
 			} catch (SQLException e) {
 				notCreated = true;
 				error = "Unknown Error";
@@ -339,7 +389,7 @@ public class UserController {
             isOldPass = oldPass.equals(user.getPassword());
 
             try {
-                isUpdated = userService.Update(user, isOldPass);
+				isUpdated = userService.update(user, isOldPass);
             } catch (SQLException e) {
                 System.out.println("error at update");
                 notUpdated = true;
@@ -358,4 +408,13 @@ public class UserController {
 		return "user-update";
 	}
 
+	@GetMapping("/user/profile")
+	public String showUserProfile(HttpSession session) {
+
+		String adminEmail = (String) session.getAttribute("user-email");
+		if (adminEmail == null) {
+			return "redirect:/login";
+		}
+		return "user-profile";
+	}
 }

@@ -59,24 +59,28 @@
 							<th>Education</th>
 							<td>${sessionScope.student.education}</td>
 						</tr>
-						<tr>
-							<th>Attend</th>
-							
-								<td>
-									<c:forEach var="course" items="${sessionScope.student.enrollment}" varStatus="loop">
-                                        ${course.name} ${not loop.last?", ":" "}
-                                    </c:forEach>
-								</td>
-							
-						</tr>
-						
-					</table>
+                    <tr>
+                        <th>Attend</th>
 
-				</div>
-			</div>
+                        <td>
+                            <c:forEach var="course" items="${sessionScope.student.enrollment}" varStatus="loop">
+                                ${course.name} ${not loop.last?", ":" "}
+                            </c:forEach>
+                        </td>
 
-		</div>
-	</div>
+                    </tr>
+                    <tr>
+                        <th>Added By</th>
+                        <td>${sessionScope.student.createdBy}</td>
+                    </tr>
+
+                </table>
+
+                </div>
+            </div>
+
+        </div>
+    </div>
 
 </body>
 </html>

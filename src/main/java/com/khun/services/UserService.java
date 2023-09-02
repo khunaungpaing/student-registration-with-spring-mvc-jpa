@@ -16,7 +16,7 @@ public interface UserService extends Predictable {
 
     boolean save(UserReqDto userReqDto) throws SQLException;
 
-    boolean Update(UserReqDto userReqDto, boolean isOldPass) throws SQLException;
+    boolean update(UserReqDto userReqDto, boolean isOldPass) throws SQLException;
 
     User getUserByEmail(String email);
 

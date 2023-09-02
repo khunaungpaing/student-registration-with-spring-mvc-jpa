@@ -9,7 +9,6 @@ com\khun\utils\Status.class
 com\khun\services\impl\StudentServiceImpl.class
 com\khun\services\StudentService.class
 com\khun\repo\UserRepository.class
-com\khun\services\impl\CourseServiceImpl$1.class
 com\khun\repo\CourseRepository.class
 com\khun\exception\AccountDisableException.class
 com\khun\utils\CodeGenerator$1.class

@@ -95,7 +95,69 @@
 		</div>
 	</div>
 
+	<form action="change-default-password" id="password-form" method="post">
+		<div class="modal" tabindex="-1" id="myModal">
+			<div class="modal-dialog">
+				<div class="modal-content">
+					<div class="modal-header">
+						<h5 class="modal-title">Change Default Password</h5>
+						<button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+					</div>
+					<div class="modal-body">
+						<div class="row mb-4">
+							<div class="col-md-1"></div>
+							<label for="apassword" class="col-md-4 col-form-label">Passowrd</label>
+							<div class="col-md-6">
+								<input type="password" class="form-control" id="apassword"
+									   name="pass" placeholder="Password" required>
+							</div>
+						</div>
+						<div class="row mb-4">
+							<div class="col-md-1"></div>
+							<label for="aconfirm-password" class="col-md-4 col-form-label">Confirm
+								Passowrd</label>
+							<div class="col-md-6">
+								<input type="password" class="form-control" id="aconfirm-password"
+									   name="comfirm" placeholder="Confirm password" required>
+							</div>
+						</div>
+					</div>
+					<div class="modal-footer">
+						<button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+						<button type="submit" class="btn btn-primary">Change Password</button>
+					</div>
+				</div>
+			</div>
+		</div>
+	</form>
+
 </body>
+
+<script>
+	// Get a reference to the modal
+	const modal = document.getElementById("myModal");
+
+	// Check the condition and display the modal if necessary
+	if (${sessionScope.isFirstLogin}) {
+		const bootstrapModal = new bootstrap.Modal(modal);
+		bootstrapModal.show();
+	}
+
+	//check password
+	const form = document.getElementById('password-form');
+	const passwordInput = form.querySelector('#apassword');
+	const confirmPasswordInput = form.querySelector('#aconfirm-password');
+
+	form.addEventListener('submit', function (event) {
+		if (passwordInput.value !== confirmPasswordInput.value) {
+			alert("Passwords do not match!");
+			event.preventDefault();
+		} else if (passwordInput.value.length < 8) {
+			alert("Password must be at least 8 characters long!");
+			event.preventDefault();
+		}
+	});
+</script>
 
 </html>
 

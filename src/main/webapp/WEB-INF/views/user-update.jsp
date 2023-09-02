@@ -48,16 +48,16 @@
 					<label for="password" class="col-md-2 col-form-label">Passowrd</label>
 					<div class="col-md-4">
 						<input type="password" class="form-control" id="password" value="${updateUser.password}"
-							name="pass" placeholder="Password">
-					</div>
-				</div>
-				<div class="row mb-4">
-					<div class="col-md-2"></div>
-					<label for="confirmPassword" class="col-md-2 col-form-label">Confirm
-						Passowrd</label>
-					<div class="col-md-4">
-						<input type="password" class="form-control" id="confirm-password"
-							value="${updateUser.password}" name="comfirm" placeholder="Confirm password">
+                               name="pass" placeholder="Password">
+                    </div>
+                </div>
+                <div class="row mb-4">
+                    <div class="col-md-2"></div>
+                    <label for="confirm-password" class="col-md-2 col-form-label">Confirm
+                        Passowrd</label>
+                    <div class="col-md-4">
+                        <input type="password" class="form-control" id="confirm-password"
+                               value="${updateUser.password}" name="comfirm" placeholder="Confirm password">
 					</div>
 				</div>
 				<input type="hidden" value="${updateUser.role}" name="role">

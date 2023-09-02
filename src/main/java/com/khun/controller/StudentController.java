@@ -56,7 +56,7 @@ public class StudentController {
         }
 
         // get all courses
-        List<CourseDto> courseList = courseService.getAllCourses();
+        List<CourseDto> courseList = courseService.getAllCourses().stream().filter(CourseDto::isActive).toList();
         session.setAttribute("courseList", courseList);
 
         // generate user code and set to session
@@ -87,11 +87,11 @@ public class StudentController {
         boolean notCreated = false;
 
         // upload image
-        boolean createImageSuccess = false;
+        boolean createImageSuccess;
         String img_url = null;
 
         try {
-            img_url = new FileCreator(imageFile, request.getServletContext()).create(request);
+            img_url = new FileCreator(imageFile, request.getServletContext()).create();
             createImageSuccess = true;
         } catch (IOException e) {
             createImageSuccess = false;
@@ -133,7 +133,9 @@ public class StudentController {
         }
 
         if (img_url != null && createImageSuccess && isAuth && checkDate) {
-            StudentDto student = new StudentDto(studentId, name, dob, gender, phone, education, img_url, null);
+            StudentDto student = new StudentDto(studentId, name, dob, gender,
+                    phone, education, img_url, null,
+                    (String) session.getAttribute("username"));
             try {
                 isCreated = studentService.addStudentWithEnrollments(student, List.of(courseIds));
             } catch (SQLIntegrityConstraintViolationException e) {
@@ -204,7 +206,7 @@ public class StudentController {
         // get student info
         List<StudentDto> stuList = studentService.fetchAllStudents();
         StudentDto student = stuList.stream().filter(s -> studentId.equalsIgnoreCase(s.getId())).findFirst().get();
-        List<CourseDto> courses = student.getEnrollment().stream().map(course -> new CourseDto(course.getId(), course.getName())).toList();
+        List<CourseDto> courses = student.getEnrollment().stream().map(course -> new CourseDto(course.getId(), course.getName(), null, false, null)).toList();
 
         session.setAttribute("student", student);
         session.setAttribute("stuCourses", courses);
@@ -252,8 +254,8 @@ public class StudentController {
 		String img_url = null;
 		if (imageFile != null && imageFile.getSize() > 0) {
 			try {
-				img_url = new FileCreator(imageFile, request.getServletContext()).create(request);
-				createImageSuccess = true;
+                img_url = new FileCreator(imageFile, request.getServletContext()).create();
+                createImageSuccess = true;
 			} catch (IOException e) {
 				createImageSuccess = false;
 				error = "can't not upload image";

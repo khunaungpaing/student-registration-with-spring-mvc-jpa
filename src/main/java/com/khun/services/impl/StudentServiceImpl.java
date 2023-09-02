@@ -68,6 +68,7 @@ public class StudentServiceImpl implements StudentService {
         dto.setEducation(student.getEducation());
         dto.setImg_url(student.getImg_url());
         dto.setEnrollment(new ArrayList<>(student.getCourses()));
+        dto.setCreatedBy(student.getCreatedBy());
         return dto;
     }
 

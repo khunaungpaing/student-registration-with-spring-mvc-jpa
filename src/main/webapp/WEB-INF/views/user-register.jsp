@@ -14,10 +14,10 @@
 
 <body>
 		<jsp:include page="header.jsp"></jsp:include>
-		<div class="main_contents">
-			<div id="sub_content">
+        <div class="main_contents">
+            <div id="sub_content">
 
-                <form id="user-form" action="register" method="post">
+                <form id="user-form" action="register" method="post" enctype="multipart/form-data">
 
                     <h2 class="col-md-6 offset-md-2 mb-5 mt-4 fw-bold">CREATE NEW
                         USER</h2>
@@ -47,33 +47,43 @@
 								placeholder="Username" required>
 						</div>
 					</div>
-					<div class="row mb-4">
-						<div class="col-md-2"></div>
-						<label for="password" class="col-md-2 col-form-label">Passowrd</label>
-						<div class="col-md-4">
-							<input type="password" class="form-control" id="password"
-								name="pass" placeholder="Password" required>
-						</div>
-					</div>
-					<div class="row mb-4">
-						<div class="col-md-2"></div>
-						<label for="confirmPassword" class="col-md-2 col-form-label">Confirm
-							Passowrd</label>
-						<div class="col-md-4">
-							<input type="password" class="form-control" id="confirm-password"
-								name="comfirm" placeholder="Confirm password" required>
-						</div>
-					</div>
-					<div class="row mb-4">
-						<div class="col-md-4"></div>
+                    <div class="row mb-4">
+                        <div class="col-md-2"></div>
+                        <label for="password" class="col-md-2 col-form-label">Passowrd</label>
+                        <div class="col-md-4">
+                            <input type="password" class="form-control" id="password"
+                                   name="pass" placeholder="Password" required>
+                        </div>
+                    </div>
+                    <div class="row mb-4">
+                        <div class="col-md-2"></div>
+                        <label for="confirm-password" class="col-md-2 col-form-label">Confirm
+                            Passowrd</label>
+                        <div class="col-md-4">
+                            <input type="password" class="form-control" id="confirm-password"
+                                   name="comfirm" placeholder="Confirm password" required>
+                        </div>
+                    </div>
 
-						<div class="d-flex justify-content-end col-md-4">
+                    <div class="row mb-4">
+                        <div class="col-md-2"></div>
+                        <label for="photo" class="col-md-2 col-form-label">Photo</label>
+                        <div class="col-md-4">
+                            <input type="file" accept=".jpg, .jpeg, .png" name="imageFile"
+                                   class="form-control" id="photo" required>
+                        </div>
+                    </div>
+                    <div class="row mb-4">
+                        <div class="col-md-4"></div>
 
-							<!-- Reset Button -->
-							<button type="reset" class="btn btn-secondary col-md-4 me-2">
-								Reset</button>
+                        <div class="d-flex justify-content-end col-md-4">
 
-							<!-- Button trigger modal -->
+                            <!-- Reset Button -->
+                            <button type="reset" class="btn btn-secondary col-md-4 me-2">
+                                Reset
+                            </button>
+
+                            <!-- Button trigger modal -->
 							<button type="button" class="btn btn-success col-md-4"
 								data-bs-toggle="modal" data-bs-target="#exampleModal">
 								Create</button>
@@ -153,7 +163,7 @@
 		
 
 	<script>
-        
+
         //check password
         const form = document.getElementById('user-form');
         const passwordInput = form.querySelector('#password');
@@ -165,13 +175,12 @@
                 event.preventDefault();
             } else if (passwordInput.value.length < 8) {
                 alert("Password must be at least 8 characters long!");
-                event.preventDefault(); 
+                event.preventDefault();
             }
         });
-        
-        
-        
-		//toast
+
+
+        //toast
 		if(${sessionScope.isCreated}){
 			var toast = new bootstrap.Toast(document.querySelector('#successToast'));
 			toast.show();
@@ -183,7 +192,6 @@
 			toast.show();
 
 		}
-        
 
 
     </script>
