@@ -134,11 +134,11 @@
 <div class="card-container">
     <c:url value="${sessionScope.userImg}" var="userPhoto"/>
     <img class="round profile-pic" src="${userPhoto}" alt="user"/>
-    <h3 class="text-lblue">Khun Aung Paing</h3>
+    <h3 class="text-lblue">${sessionScope.username}</h3>
     <h6>Role : ${sessionScope.isAdmin? "ADMIN":"USER"}</h6>
     <div class="mt-4">
-        <button class="primary ghost">
-            Change Password
+        <button type="button" class="primary" data-bs-toggle="modal" data-bs-target="#exampleModal">
+            Reset Password
         </button>
         <button type="button" class="primary">
             change profile
@@ -149,25 +149,30 @@
         <c:if test="${sessionScope.isAdmin}">
             <p>Admin can manage user, course and student.</p>
         </c:if>
+        <c:if test="${not sessionScope.isAdmin}">
+            <p>User can only manage student.</p>
+        </c:if>
 
     </div>
 </div>
 
-<form action="change-password" id="password-form" method="post">
-    <div class="modal" tabindex="-1" id="myModal">
+<!-- Modal -->
+
+<form action="reset-password" id="password-form" method="post">
+    <div class="modal fade" id="exampleModal" tabindex="-1" aria-labelledby="exampleModalLabel" aria-hidden="true">
         <div class="modal-dialog">
             <div class="modal-content">
                 <div class="modal-header">
-                    <h5 class="modal-title">Change Default Password</h5>
+                    <h1 class="modal-title fs-5" id="exampleModalLabel">Reset Password</h1>
                     <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
                 </div>
                 <div class="modal-body">
                     <div class="row mb-4">
                         <div class="col-md-1"></div>
-                        <label for="oldpassword" class="col-md-4 col-form-label">Passowrd</label>
+                        <label for="oldpassword" class="col-md-4 col-form-label">Current Password</label>
                         <div class="col-md-6">
                             <input type="password" class="form-control" id="oldpassword"
-                                   name="oldpass" placeholder="Password" required>
+                                   name="oldpass" placeholder="Current Password" required>
                         </div>
                     </div>
                     <div class="row mb-4">
@@ -190,7 +195,7 @@
                 </div>
                 <div class="modal-footer">
                     <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
-                    <button type="submit" class="btn btn-primary">Change Password</button>
+                    <button type="button" class="btn btn-primary">Save changes</button>
                 </div>
             </div>
         </div>
@@ -198,14 +203,7 @@
 </form>
 </body>
 <script>
-    // Get a reference to the modal
-    const modal = document.getElementById("myModal");
 
-    // Check the condition and display the modal if necessary
-    if (${sessionScope.isFirstLogin}) {
-        const bootstrapModal = new bootstrap.Modal(modal);
-        bootstrapModal.show();
-    }
 
     //check password
     const form = document.getElementById('password-form');

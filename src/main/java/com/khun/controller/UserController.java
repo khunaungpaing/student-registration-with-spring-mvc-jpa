@@ -142,25 +142,60 @@ public class UserController {
 				userService.update(userReqDto, false);
 			} catch (SQLException e) {
 				System.out.println("error at update");
-			}
-		}
+            }
+        }
 
-		Optional<User> user1 = userService.getOneById((String) session.getAttribute("userId"));
-		setSessionData(session, user1.get().mapToUserDto());
+        Optional<User> user1 = userService.getOneById((String) session.getAttribute("userId"));
+        setSessionData(session, user1.get().mapToUserDto());
 
-		return "redirect:/students";
-	}
+        return "redirect:/students";
+    }
 
 
-	@GetMapping("/users")
-	public String getUserList(@RequestParam(name = "userId", required = false) String userId,
-							  @RequestParam(name = "username", required = false) String username,
-							  @RequestParam(name = "userStatus", required = false) String status, HttpSession session) {
+    @PostMapping("reset-password")
+    public String resetPassword(
+            @RequestParam(name = "oldpass") String oldPassword,
+            @RequestParam(name = "pass") String password,
+            HttpSession session) {
+        String usermail = (String) session.getAttribute("user-email");
+        if (usermail == null) {
+            return "redirect:/login";
+        }
 
-		String adminEmail = (String) session.getAttribute("user-email");
-		if (adminEmail == null) {
-			return "redirect:/login";
-		}
+
+        User user = userService.getUserByEmail(usermail);
+        if (user.getPassword().equals(oldPassword)) {
+
+        }
+        UserReqDto userReqDto;
+        if (user != null) {
+            userReqDto = new UserReqDto(user.getId(),
+                    user.getName(), user.getEmail(),
+                    PasswordHasher.hashPassword(password),
+                    user.getRole(), user.getStatus(), false,
+                    user.getImgUrl());
+            try {
+                userService.update(userReqDto, false);
+            } catch (SQLException e) {
+                System.out.println("error at update");
+            }
+        }
+
+        Optional<User> user1 = userService.getOneById((String) session.getAttribute("userId"));
+        setSessionData(session, user1.get().mapToUserDto());
+
+        return "redirect:/students";
+    }
+
+    @GetMapping("/users")
+    public String getUserList(@RequestParam(name = "userId", required = false) String userId,
+                              @RequestParam(name = "username", required = false) String username,
+                              @RequestParam(name = "userStatus", required = false) String status, HttpSession session) {
+
+        String adminEmail = (String) session.getAttribute("user-email");
+        if (adminEmail == null) {
+            return "redirect:/login";
+        }
 
 		boolean isAdmin = (boolean) session.getAttribute("isAdmin");
         if (!isAdmin) {
